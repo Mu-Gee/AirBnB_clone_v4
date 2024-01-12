@@ -1,87 +1,113 @@
-$(document).ready(function () {
-  let checkedAmenities = {};
-  let checkedStates = {};
-  let checkedCities = {};
-  let checkedLocations = {};
-  $(document).on('change', ".amenities > .popover > li > input[type='checkbox']", function () {
-    if (this.checked) {
-      checkedAmenities[$(this).data('id')] = $(this).data('name');
+window.addEventListener('load', function () {
+  // task 3
+  $.ajax('http://0.0.0.0:5001/api/v1/status').done(function (data) {
+    if (data.status === 'OK') {
+      $('#api_status').addClass('available');
     } else {
-      delete checkedAmenities[$(this).data('id')];
-    }
-    let lst = Object.values(checkedAmenities);
-    if (lst.length > 0) {
-      $('div.amenities > h4').text(Object.values(checkedAmenities).join(', '));
-    } else {
-      $('div.amenities > h4').html('&nbsp;');
+      $('#api_status').removeClass('available');
     }
   });
-  $(document).on('change', ".locations > .popover > li > input[type='checkbox']", function () {
-    if (this.checked) {
-      checkedStates[$(this).data('id')] = $(this).data('name');
-      checkedLocations[$(this).data('id')] = $(this).data('name');
-    } else {
-      delete checkedStates[$(this).data('id')];
-      delete checkedLocations[$(this).data('id')];
+
+  // task 2
+  const amenityIds = {};
+  $('.amenities input[type=checkbox]').click(function () {
+    if ($(this).prop('checked')) {
+      amenityIds[$(this).attr('data-id')] = $(this).attr('data-name');
+    } else if (!$(this).prop('checked')) {
+      delete amenityIds[$(this).attr('data-id')];
     }
-    let lst = Object.values(checkedLocations);
-    if (lst.length > 0) {
-      $('div.locations > h4').text(lst.join(', '));
+    if (Object.keys(amenityIds).length === 0) {
+      $('div.amenities h4').html('&nbsp;');
     } else {
-      $('div.locations > h4').html('&nbsp;');
+      $('div.amenities h4').text(Object.values(amenityIds).join(', '));
     }
   });
-  $(document).on('change', ".locations > .popover > li > ul > li > input[type='checkbox']", function () {
-    if (this.checked) {
-      checkedCities[$(this).data('id')] = $(this).data('name');
-      checkedLocations[$(this).data('id')] = $(this).data('name');
-    } else {
-      delete checkedCities[$(this).data('id')];
-      delete checkedLocations[$(this).data('id')];
-    }
-    let lst = Object.values(checkedLocations);
-    if (lst.length > 0) {
-      $('div.locations > h4').text(lst.join(', '));
-    } else {
-      $('div.locations > h4').html('&nbsp;');
-    }
-  });
-  $.get('http://0.0.0.0:5001/api/v1/status/', function (data, textStatus) {
-    if (textStatus === 'success') {
-      if (data.status === 'OK') {
-        $('#api_status').addClass('available');
-      } else {
-        $('#api_status').removeClass('available');
-      }
-    }
-  });
-  $.ajax({
-    type: 'POST',
-    url: 'http://0.0.0.0:5001/api/v1/places_search',
-    data: '{}',
-    dataType: 'json',
-    contentType: 'application/json',
-    success: function (data) {
-      for (let i = 0; i < data.length; i++) {
-        let place = data[i];
-        $('.places ').append('<article><h2>' + place.name + '</h2><div class="price_by_night"><p>$' + place.price_by_night + '</p></div><div class="information"><div class="max_guest"><div class="guest_image"></div><p>' + place.max_guest + '</p></div><div class="number_rooms"><div class="bed_image"></div><p>' + place.number_rooms + '</p></div><div class="number_bathrooms"><div class="bath_image"></div><p>' + place.number_bathrooms + '</p></div></div><div class="description"><p>' + place.description + '</p></div></article>');
-      }
-    }
-  });
-  $('.filters > button').click(function () {
-    $('.places > article').remove();
+
+  const stateIds = {};
+  const cityIds = {};
+  // task 4
+  $('.filters button').click(function () {
     $.ajax({
       type: 'POST',
-      url: 'http://0.0.0.0:5001/api/v1/places_search',
-      data: JSON.stringify({'amenities': Object.keys(checkedAmenities), 'states': Object.keys(checkedStates), 'cities': Object.keys(checkedCities)}),
-      dataType: 'json',
+      url: 'http://0.0.0.0:5001/api/v1/places_search/',
       contentType: 'application/json',
-      success: function (data) {
-        for (let i = 0; i < data.length; i++) {
-          let place = data[i];
-          $('.places ').append('<article><h2>' + place.name + '</h2><div class="price_by_night"><p>$' + place.price_by_night + '</p></div><div class="information"><div class="max_guest"><div class="guest_image"></div><p>' + place.max_guest + '</p></div><div class="number_rooms"><div class="bed_image"></div><p>' + place.number_rooms + '</p></div><div class="number_bathrooms"><div class="bath_image"></div><p>' + place.number_bathrooms + '</p></div></div><div class="description"><p>' + place.description + '</p></div></article>');
-        }
+      data: JSON.stringify({
+        amenities: Object.keys(amenityIds),
+        states: Object.keys(stateIds),
+        cities: Object.keys(cityIds)
+      })
+    }).done(function (data) {
+      $('section.places').empty();
+      $('section.places').append('<h1>Places</h1>');
+      for (const place of data) {
+        const template = `<article>
+        <div class="title">
+        <h2>${place.name}</h2>
+        <div class="price_by_night">
+      $${place.price_by_night}
+      </div>
+        </div>
+        <div class="information">
+        <div class="max_guest">
+        <i class="fa fa-users fa-3x" aria-hidden="true"></i>
+
+        <br />
+
+      ${place.max_guest} Guests
+
+      </div>
+        <div class="number_rooms">
+        <i class="fa fa-bed fa-3x" aria-hidden="true"></i>
+
+        <br />
+
+      ${place.number_rooms} Bedrooms
+      </div>
+        <div class="number_bathrooms">
+        <i class="fa fa-bath fa-3x" aria-hidden="true"></i>
+
+        <br />
+
+      ${place.number_bathrooms} Bathroom
+
+      </div>
+        </div>
+        <div class="description">
+
+      ${place.description}
+
+      </div>
+
+      </article> <!-- End 1 PLACE Article -->`;
+        $('section.places').append(template);
       }
     });
+  });
+
+  // task 6
+  $('.stateCheckBox').click(function () {
+    if ($(this).prop('checked')) {
+      stateIds[$(this).attr('data-id')] = $(this).attr('data-name');
+    } else if (!$(this).prop('checked')) {
+      delete stateIds[$(this).attr('data-id')];
+    }
+    if (Object.keys(stateIds).length === 0 && Object.keys(cityIds).length === 0) {
+      $('.locations h4').html('&nbsp;');
+    } else {
+      $('.locations h4').text(Object.values(stateIds).concat(Object.values(cityIds)).join(', '));
+    }
+  });
+
+  $('.cityCheckBox').click(function () {
+    if ($(this).prop('checked')) {
+      cityIds[$(this).attr('data-id')] = $(this).attr('data-name');
+    } else if (!$(this).prop('checked')) {
+      delete cityIds[$(this).attr('data-id')];
+    }
+    if (Object.keys(stateIds).length === 0 && Object.keys(cityIds).length === 0) {
+      $('.locations h4').html('&nbsp;');
+    } else {
+      $('.locations h4').text(Object.values(cityIds).concat(Object.values(stateIds)).join(', '));
+    }
   });
 });
